@@ -1,0 +1,48 @@
+---
+
+- name: Fail if required Plausible Analytics settings not defined
+  ansible.builtin.fail:
+    msg: >
+      You need to define a required configuration setting (`{{ item }}`).
+  when: "vars[item] == ''"
+  with_items:
+    - plausible_identifier
+    - plausible_uid
+    - plausible_gid
+    - plausible_hostname
+    - plausible_path_prefix
+    - plausible_container_network
+    - plausible_database_hostname
+    - plausible_database_password
+    - plausible_clickhouse_database_hostname
+    - plausible_clickhouse_database_password
+    - plausible_environment_variable_secret_key_base
+
+- name: Validate Plausible Analytics Traefik configuration
+  when: plausible_container_labels_traefik_enabled | bool
+  block:
+    - name: Fail if required Plausible Analytics Traefik settings not defined
+      ansible.builtin.fail:
+        msg: >-
+          You need to define a required configuration setting (`{{ item }}`).
+      when: "vars[item] == ''"
+      with_items:
+        - plausible_container_labels_traefik_hostname
+        - plausible_container_labels_traefik_path_prefix
+
+    # We ensure it doesn't end with a slash, because we handle both (slash and no-slash).
+    # Knowing that `plausible_container_labels_traefik_path_prefix` does not end with a slash
+    # ensures we know how to set these routes up without having to do "does it end with a slash" checks elsewhere.
+    - name: Fail if plausible_container_labels_traefik_path_prefix ends with a slash
+      ansible.builtin.fail:
+        msg: >-
+          plausible_container_labels_traefik_path_prefix (`{{ plausible_container_labels_traefik_path_prefix }}`) must either be `/` or not end with a slash (e.g. `/plausible`).
+      when: "plausible_container_labels_traefik_path_prefix != '/' and plausible_container_labels_traefik_path_prefix[-1] == '/'"
+
+    - name: Fail if plausible_path_prefix is anything other than /
+      ansible.builtin.fail:
+        msg: >-
+          `plausible_path_prefix` must be set to `/`.
+          See the comments for the `plausible_path_prefix` variable in `defaults/main.yml`.
+          Hosting Plausible at a subdirectory may or may not work as expected - it will most likely require additional work.
+      when: "plausible_path_prefix != '/'"

@@ -1,0 +1,56 @@
+#jinja2: lstrip_blocks: "True"
+[Unit]
+Description=Plausible Analytics ({{ plausible_identifier }})
+{% for service in plausible_systemd_required_services_list %}
+Requires={{ service }}
+After={{ service }}
+{% endfor %}
+{% for service in plausible_systemd_wanted_services_list %}
+Wants={{ service }}
+{% endfor %}
+DefaultDependencies=no
+
+[Service]
+Type=simple
+Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop --time={{ devture_systemd_docker_base_container_stop_grace_time_seconds }} {{ plausible_identifier }} 2>/dev/null || true'
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ plausible_identifier }} 2>/dev/null || true'
+
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
+			--rm \
+			--name={{ plausible_identifier }} \
+			--log-driver=none \
+			--user={{ plausible_uid }}:{{ plausible_gid }} \
+			--cap-drop=ALL \
+			--read-only \
+			--network={{ plausible_container_network }} \
+			{% if plausible_container_http_bind_port %}
+			-p {{ plausible_container_http_bind_port }}:{{ plausible_environment_variable_port }} \
+			{% endif %}
+			--env-file={{ plausible_base_path }}/env \
+			--label-file={{ plausible_base_path }}/labels \
+			{% for volume in plausible_container_additional_volumes %}
+			--mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
+			{% endfor %}
+			--tmpfs=/tmp:rw,noexec,nosuid,size=512m \
+			{% for arg in plausible_container_extra_arguments %}
+			{{ arg }} \
+			{% endfor %}
+			{{ plausible_container_image }} \
+			{{ plausible_container_command }}
+
+{% for network in plausible_container_additional_networks %}
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ plausible_identifier }}
+{% endfor %}
+
+ExecStart={{ devture_systemd_docker_base_host_command_docker }} start --attach {{ plausible_identifier }}
+
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop --time={{ devture_systemd_docker_base_container_stop_grace_time_seconds }} {{ plausible_identifier }} 2>/dev/null || true'
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ plausible_identifier }} 2>/dev/null || true'
+
+Restart=always
+RestartSec=30
+SyslogIdentifier={{ plausible_identifier }}
+
+[Install]
+WantedBy=multi-user.target

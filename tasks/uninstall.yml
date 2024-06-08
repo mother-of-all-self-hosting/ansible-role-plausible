@@ -1,0 +1,26 @@
+---
+
+- name: Check existence of Plausible Analytics systemd service
+  ansible.builtin.stat:
+    path: "{{ devture_systemd_docker_base_systemd_path }}/{{ plausible_identifier }}.service"
+  register: plausible_service_stat
+
+- name: Uninstall Plausible Analytics systemd services and files
+  when: plausible_service_stat.stat.exists | bool
+  block:
+    - name: Ensure Plausible Analytics systemd service is stopped
+      ansible.builtin.service:
+        name: "{{ plausible_identifier }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+
+    - name: Ensure Plausible Analytics systemd service does not exist
+      ansible.builtin.file:
+        path: "{{ devture_systemd_docker_base_systemd_path }}/{{ plausible_identifier }}.service"
+        state: absent
+
+    - name: Ensure Plausible Analytics path doesn't exist
+      ansible.builtin.file:
+        path: "{{ plausible_base_path }}"
+        state: absent
