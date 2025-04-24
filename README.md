@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Plausible Analytics Ansible role
 
 This is an [Ansible](https://www.ansible.com/) role which installs [Plausible Analytics](https://plausible.io/) (using its [Community Edition](https://github.com/plausible/community-edition)) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
