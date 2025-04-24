@@ -13,6 +13,7 @@ plausible_identifier: plausible
 plausible_uid: ''
 plausible_gid: ''
 
+# renovate: datasource=docker depName=ghcr.io/plausible/community-edition versioning=semver
 plausible_version: v3.0.1
 
 plausible_scheme: https
