@@ -1,4 +1,8 @@
-# SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023 - 2024 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023 - 2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
+# SPDX-FileCopyrightText: 2025 MASH project contributors
+# SPDX-FileCopyrightText: 2025 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -32,8 +36,10 @@ plausible_path_prefix: /
 plausible_base_path: "/{{ plausible_identifier }}"
 
 plausible_container_image: "{{ plausible_container_image_registry_prefix }}plausible/community-edition:{{ plausible_container_image_tag }}"
-plausible_container_image_registry_prefix: ghcr.io/
 plausible_container_image_tag: "{{ plausible_version }}"
+plausible_container_image_registry_prefix: "{{ plausible_container_image_registry_prefix_upstream }}"
+plausible_container_image_registry_prefix_upstream: "{{ plausible_container_image_registry_prefix_upstream_default }}"
+plausible_container_image_registry_prefix_upstream_default: ghcr.io/
 plausible_container_image_force_pull: "{{ plausible_container_image.endswith(':latest') }}"
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.
