@@ -1,8 +1,22 @@
-# SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023 - 2024 Slavi Pantaleev
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
+
+- name: (Deprecation) Catch and report renamed settings
+  ansible.builtin.fail:
+    msg: >-
+      Your configuration contains a variable, which now has a different name.
+      Please change your configuration to rename the variable (`{{ item.old }}` -> `{{ item.new }}`).
+  when: "item.old in vars"
+  with_items:
+    - {'old': 'plausible_systemd_required_systemd_services_list_default', 'new': 'plausible_systemd_required_services_list_default'}
+    - {'old': 'plausible_systemd_required_systemd_services_list_auto', 'new': 'plausible_systemd_required_services_list_auto'}
+    - {'old': 'plausible_systemd_required_systemd_services_list_custom', 'new': 'plausible_systemd_required_services_list_custom'}
+    - {'old': 'plausible_systemd_wanted_systemd_services_list_default', 'new': 'plausible_systemd_wanted_services_list_default'}
+    - {'old': 'plausible_systemd_wanted_systemd_services_list_auto', 'new': 'plausible_systemd_wanted_services_list_auto'}
+    - {'old': 'plausible_systemd_wanted_systemd_services_list_custom', 'new': 'plausible_systemd_wanted_services_list_custom'}
 
 - name: Fail if required Plausible Analytics settings not defined
   ansible.builtin.fail:
