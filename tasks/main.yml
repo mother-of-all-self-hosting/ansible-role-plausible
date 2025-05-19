@@ -4,26 +4,26 @@
 
 ---
 
-- name: Install Plausible Analytics
+- name: Perform Plausible Analytics installation tasks
+  block:
+    - name: Validate Plausible Analytics configuration
+      when: plausible_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+
+    - name: Install Plausible Analytics
+      when: plausible_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
   tags:
     - setup-all
     - setup-plausible
     - install-all
     - install-plausible
+
+- name: Perform Plausible Analytics uninstallation tasks
   block:
-    - name: Run Plausible Analyics validation tasks
-      when: plausible_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
-
-    - name: Run Plausible Analyics installation tasks
-      when: plausible_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
-
-- name: Uninstall Plausible Analytics
+    - name: Uninstall Plausible Analytics
+      when: not plausible_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
   tags:
     - setup-all
     - setup-plausible
-  block:
-    - name: Run Plausible Analyics uninstallation tasks
-      when: not plausible_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
