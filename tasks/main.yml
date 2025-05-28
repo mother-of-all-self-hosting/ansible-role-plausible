@@ -3,27 +3,25 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-
 - name: Perform Plausible Analytics installation tasks
-  block:
-    - name: Validate Plausible Analytics configuration
-      when: plausible_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
-
-    - name: Install Plausible Analytics
-      when: plausible_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
   tags:
     - setup-all
     - setup-plausible
     - install-all
     - install-plausible
+  block:
+    - name: Validate Plausible Analytics configuration
+      when: plausible_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+    - name: Install Plausible Analytics
+      when: plausible_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
 
 - name: Perform Plausible Analytics uninstallation tasks
+  tags:
+    - setup-all
+    - setup-plausible
   block:
     - name: Uninstall Plausible Analytics
       when: not plausible_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
-  tags:
-    - setup-all
-    - setup-plausible
