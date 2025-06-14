@@ -41,7 +41,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			{% for arg in plausible_container_extra_arguments %}
 			{{ arg }} \
 			{% endfor %}
-			{{ plausible_container_image }} \
+			{{ plausible_container_image_self_build_name if plausible_container_image_self_build else plausible_container_image }} \
 			{{ plausible_container_command }}
 
 {% for network in plausible_container_additional_networks %}
