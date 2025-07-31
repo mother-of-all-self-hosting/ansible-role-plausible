@@ -38,7 +38,7 @@
 - name: Validate Plausible Analytics Traefik configuration
   when: plausible_container_labels_traefik_enabled | bool
   block:
-    - name: Fail if required Plausible Analytics Traefik settings not defined
+    - name: Fail if Traefik settings required for Plausible Analytics are not defined
       ansible.builtin.fail:
         msg: >-
           You need to define a required configuration setting (`{{ item }}`).
