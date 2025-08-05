@@ -47,6 +47,13 @@
         - plausible_container_labels_traefik_hostname
         - plausible_container_labels_traefik_path_prefix
 
+    - name: Fail if plausible_container_labels_traefik_path_prefix is different than /
+      ansible.builtin.fail:
+        msg: >-
+          plausible_container_labels_traefik_path_prefix (`{{ plausible_container_labels_traefik_path_prefix }}`) must be `/`.
+          Plausible Analytics does not support hosting under a subpath yet.
+      when: "plausible_container_labels_traefik_path_prefix != '/'"
+
     # We ensure it doesn't end with a slash, because we handle both (slash and no-slash).
     # Knowing that `plausible_container_labels_traefik_path_prefix` does not end with a slash
     # ensures we know how to set these routes up without having to do "does it end with a slash" checks elsewhere.
@@ -55,11 +62,3 @@
         msg: >-
           plausible_container_labels_traefik_path_prefix (`{{ plausible_container_labels_traefik_path_prefix }}`) must either be `/` or not end with a slash (e.g. `/plausible`).
       when: "plausible_container_labels_traefik_path_prefix != '/' and plausible_container_labels_traefik_path_prefix[-1] == '/'"
-
-    - name: Fail if plausible_path_prefix is anything other than /
-      ansible.builtin.fail:
-        msg: >-
-          `plausible_path_prefix` must be set to `/`.
-          See the comments for the `plausible_path_prefix` variable in `defaults/main.yml`.
-          Hosting Plausible at a subdirectory may or may not work as expected - it will most likely require additional work.
-      when: "plausible_path_prefix != '/'"
