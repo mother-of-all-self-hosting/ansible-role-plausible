@@ -112,7 +112,7 @@ plausible_systemd_required_services_list_default: "{{ [devture_systemd_docker_ba
 plausible_systemd_required_services_list_auto: []
 plausible_systemd_required_services_list_custom: []
 
-# List of systemd services that Plausible Analytics systemd service wants
+# List of systemd services that the Plausible Analytics systemd service wants
 plausible_systemd_wanted_services_list: "{{ plausible_systemd_wanted_services_list_default + plausible_systemd_wanted_services_list_auto + plausible_systemd_wanted_services_list_custom }}"
 plausible_systemd_wanted_services_list_default: []
 plausible_systemd_wanted_services_list_auto: []
