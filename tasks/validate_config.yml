@@ -1,4 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Julian-Samuel Gebühr
 # SPDX-FileCopyrightText: 2023 - 2024 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2025 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -34,6 +36,14 @@
     - plausible_clickhouse_database_hostname
     - plausible_clickhouse_database_password
     - plausible_environment_variable_secret_key_base
+
+- name: Fail if SMTP settings are missing (and SMTP is enabled by setting host)
+  ansible.builtin.fail:
+    msg: >-
+      You need to define a required configuration setting (`{{ item }}`) to correctly set up email via SMTP.
+  when: "plausible_environment_variable_smtp_host_addr !='' and lookup('vars', item, default='') | string | length == 0"
+  with_items:
+    - plausible_environment_variable_mailer_email
 
 - name: Validate Plausible Analytics Traefik configuration
   when: plausible_container_labels_traefik_enabled | bool
