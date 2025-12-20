@@ -118,6 +118,25 @@ plausible_systemd_wanted_services_list_default: []
 plausible_systemd_wanted_services_list_auto: []
 plausible_systemd_wanted_services_list_custom: []
 
+plausible_database_username: plausible
+plausible_database_password: ''
+plausible_database_hostname: ''
+plausible_database_port: 5432
+plausible_database_name: plausible
+
+# When not running with the ClickHosue root user (`default`),
+# Plausible also requires the following grants:
+# 1. `GRANT SELECT ON system.replicas TO plausible;`
+# 2. `GRANT SELECT ON system.parts TO plausible;`
+plausible_clickhouse_database_username: plausible
+plausible_clickhouse_database_password: ''
+plausible_clickhouse_database_hostname: ''
+plausible_clickhouse_database_port: 8123
+plausible_clickhouse_database_name: plausible
+
+# Specify the timezone
+plausible_environment_variables_tz: UTC
+
 # Controls the BASE_URL environment variable
 plausible_environment_variable_base_url: "{{ plausible_scheme }}://{{ plausible_hostname }}{{ '' if plausible_path_prefix == '/' else plausible_path_prefix }}"
 
@@ -211,19 +230,3 @@ plausible_environment_variable_secure_cookie: "{{ (plausible_scheme == 'https') 
 
 # Additional environment variables.
 plausible_environment_variables_additional_variables: ''
-
-plausible_database_username: plausible
-plausible_database_password: ''
-plausible_database_hostname: ''
-plausible_database_port: 5432
-plausible_database_name: plausible
-
-# When not running with the ClickHosue root user (`default`),
-# Plausible also requires the following grants:
-# 1. `GRANT SELECT ON system.replicas TO plausible;`
-# 2. `GRANT SELECT ON system.parts TO plausible;`
-plausible_clickhouse_database_username: plausible
-plausible_clickhouse_database_password: ''
-plausible_clickhouse_database_hostname: ''
-plausible_clickhouse_database_port: 8123
-plausible_clickhouse_database_name: plausible
