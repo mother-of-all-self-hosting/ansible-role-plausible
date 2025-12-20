@@ -96,7 +96,9 @@ plausible_container_labels_traefik_tls_certResolver: default  # noqa var-naming
 plausible_container_labels_additional_labels: ''
 
 # A list of extra arguments to pass to the container
-plausible_container_extra_arguments: []
+plausible_container_extra_arguments: "{{ plausible_container_extra_arguments_auto + plausible_container_extra_arguments_custom }}"
+plausible_container_extra_arguments_auto: []
+plausible_container_extra_arguments_custom: []
 
 # The command to execute in the container
 plausible_container_command: |-
