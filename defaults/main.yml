@@ -98,7 +98,7 @@ plausible_container_labels_additional_labels: "{{ plausible_container_labels_add
 plausible_container_labels_additional_labels_auto: {}
 plausible_container_labels_additional_labels_custom: {}
 
-# A list of extra arguments to pass to the container
+# A list of extra arguments to pass to the container (`docker create` command)
 plausible_container_extra_arguments: "{{ plausible_container_extra_arguments_auto + plausible_container_extra_arguments_custom }}"
 plausible_container_extra_arguments_auto: []
 plausible_container_extra_arguments_custom: []
