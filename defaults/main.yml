@@ -17,11 +17,11 @@ plausible_base_path: "/{{ plausible_identifier }}"
 # renovate: datasource=docker depName=ghcr.io/plausible/community-edition versioning=semver
 plausible_version: v3.1.0
 
-plausible_uid: ''
-plausible_gid: ''
+plausible_uid: ""
+plausible_gid: ""
 
 # The hostname at which Plausible Analytics is served.
-plausible_hostname: ''
+plausible_hostname: ""
 
 plausible_scheme: https
 
@@ -50,7 +50,7 @@ plausible_container_image_self_build_src_files_path: "{{ plausible_base_path }}/
 #
 # Takes an "<ip>:<port>" value (e.g. "127.0.0.1:8000"), just a port number or an empty string to not expose.
 # See: `plausible_environment_variable_port`
-plausible_container_http_bind_port: ''
+plausible_container_http_bind_port: ""
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 plausible_container_network: "{{ plausible_identifier }}"
@@ -124,8 +124,8 @@ plausible_systemd_wanted_services_list_auto: []
 plausible_systemd_wanted_services_list_custom: []
 
 plausible_database_username: plausible
-plausible_database_password: ''
-plausible_database_hostname: ''
+plausible_database_password: ""
+plausible_database_hostname: ""
 plausible_database_port: 5432
 plausible_database_name: plausible
 
@@ -134,8 +134,8 @@ plausible_database_name: plausible
 # 1. `GRANT SELECT ON system.replicas TO plausible;`
 # 2. `GRANT SELECT ON system.parts TO plausible;`
 plausible_clickhouse_database_username: plausible
-plausible_clickhouse_database_password: ''
-plausible_clickhouse_database_hostname: ''
+plausible_clickhouse_database_password: ""
+plausible_clickhouse_database_hostname: ""
 plausible_clickhouse_database_port: 8123
 plausible_clickhouse_database_name: plausible
 
@@ -148,12 +148,12 @@ plausible_environment_variable_base_url: "{{ plausible_scheme }}://{{ plausible_
 # Controls the SECRET_KEY_BASE environment variable.
 # Generate this with: `openssl rand -base64 48`
 # See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#secret_key_base
-plausible_environment_variable_secret_key_base: ''
+plausible_environment_variable_secret_key_base: ""
 
 # Controls the TOTP_VAULT_KEY environment variable.
 # Generate this with: `openssl rand -base64 32`
 # See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#totp_vault_key
-plausible_environment_variable_totp_vault_key: ''
+plausible_environment_variable_totp_vault_key: ""
 
 # Controls the DISABLE_REGISTRATION environment variable.
 # Restricts registration of new users. Possible values are true (full restriction), false (no restriction), and invite_only (only the invited users can register).
@@ -172,7 +172,7 @@ plausible_environment_variable_mailer_adapter: Bamboo.LocalAdapter
 
 # Controls the MAILER_EMAIL environment variable
 # See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#mailer_email
-plausible_environment_variable_mailer_email: ''
+plausible_environment_variable_mailer_email: ""
 
 # Controls the MAILER_NAME environment variable
 # See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#mailer_name
@@ -180,7 +180,7 @@ plausible_environment_variable_mailer_name: 'Plausible Analytics'
 
 # Controls the SMTP_HOST_ADDR environment variable
 # See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_host_addr
-plausible_environment_variable_smtp_host_addr: ''
+plausible_environment_variable_smtp_host_addr: ""
 
 # Controls the SMTP_HOST_PORT environment variable
 # See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_host_port
@@ -193,11 +193,11 @@ plausible_environment_variable_smtp_host_ssl_enabled: false
 
 # Controls the SMTP_USER_NAME environment variable
 # See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_user_name
-plausible_environment_variable_smtp_user_name: ''
+plausible_environment_variable_smtp_user_name: ""
 
 # Controls the SMTP_USER_PWD environment variable
 # See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_user_pwd
-plausible_environment_variable_smtp_user_pwd: ''
+plausible_environment_variable_smtp_user_pwd: ""
 
 # Controls the SMTP_RETRIES environment variable
 # See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_retries
@@ -234,4 +234,4 @@ plausible_environment_variable_disable_cron: false
 plausible_environment_variable_secure_cookie: "{{ (plausible_scheme == 'https') }}"
 
 # Additional environment variables.
-plausible_environment_variables_additional_variables: ''
+plausible_environment_variables_additional_variables: ""
