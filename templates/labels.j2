@@ -41,4 +41,6 @@ traefik.http.routers.{{ plausible_identifier }}.tls.certResolver={{ plausible_co
 traefik.http.services.{{ plausible_identifier }}.loadbalancer.server.port={{ plausible_environment_variable_port }}
 {% endif %}
 
-{{ plausible_container_labels_additional_labels }}
+{% for arg in plausible_container_labels_additional_labels %}
+{{ arg }}
+{% endfor %}
