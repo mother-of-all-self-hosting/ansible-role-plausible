@@ -91,7 +91,7 @@ plausible_container_labels_traefik_tls_certResolver: default  # noqa var-naming
 # To add your own custom labels, use `plausible_container_labels_additional_labels_custom`
 #
 # Example:
-# plausible_container_labels_additional_labels_custom: |
+# plausible_container_labels_additional_labels_custom:
 #   - my.label=1
 #   - another.label="here"
 plausible_container_labels_additional_labels: "{{ plausible_container_labels_additional_labels_auto + plausible_container_labels_additional_labels_custom }}"
