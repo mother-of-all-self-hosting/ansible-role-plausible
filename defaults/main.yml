@@ -20,10 +20,11 @@ plausible_version: v3.1.0
 plausible_uid: ""
 plausible_gid: ""
 
+# The scheme used for serving Plausible Analytics.
+plausible_scheme: https
+
 # The hostname at which Plausible Analytics is served.
 plausible_hostname: ""
-
-plausible_scheme: https
 
 # The path at which Plausible Analytics is served.
 # This value must either be `/` or not end with a slash (e.g. `/plausible`).
