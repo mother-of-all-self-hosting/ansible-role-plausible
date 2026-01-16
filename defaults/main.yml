@@ -15,7 +15,7 @@ plausible_identifier: plausible
 plausible_base_path: "/{{ plausible_identifier }}"
 
 # renovate: datasource=docker depName=ghcr.io/plausible/community-edition versioning=semver
-plausible_version: v3.1.0
+plausible_version: v3.2.0
 
 plausible_uid: ""
 plausible_gid: ""
