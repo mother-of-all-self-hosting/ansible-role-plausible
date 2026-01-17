@@ -38,7 +38,7 @@ traefik.http.routers.{{ plausible_identifier }}.tls={{ plausible_container_label
 traefik.http.routers.{{ plausible_identifier }}.tls.certResolver={{ plausible_container_labels_traefik_tls_certResolver }}
 {% endif %}
 
-traefik.http.services.{{ plausible_identifier }}.loadbalancer.server.port={{ plausible_environment_variable_port }}
+traefik.http.services.{{ plausible_identifier }}.loadbalancer.server.port={{ plausible_container_http_port }}
 {% endif %}
 
 {% for arg in plausible_container_labels_additional_labels %}
