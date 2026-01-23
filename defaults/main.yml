@@ -117,7 +117,7 @@ plausible_container_command: |-
 # Enough time should be given so that the database can start.
 plausible_container_startup_sleep_time_seconds: 10
 
-# List of systemd services that Plausible Analytics systemd service depends on
+# List of systemd services that the Plausible Analytics systemd service depends on
 plausible_systemd_required_services_list: "{{ plausible_systemd_required_services_list_default + plausible_systemd_required_services_list_auto + plausible_systemd_required_services_list_custom }}"
 plausible_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
 plausible_systemd_required_services_list_auto: []
