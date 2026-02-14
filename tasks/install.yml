@@ -74,8 +74,8 @@
           .
       environment:
         DOCKER_BUILDKIT: "1"
-      register: result
-      changed_when: "'Successfully built' in result.stdout or ('writing image' in result.stderr and 'CACHED' not in result.stderr)"
+      register: plausible_container_image_build_result
+      changed_when: "'Successfully built' in plausible_container_image_build_result.stdout or ('writing image' in plausible_container_image_build_result.stderr and 'CACHED' not in plausible_container_image_build_result.stderr)"
 
 - name: Ensure Plausible Analytics container network is created via community.docker.docker_network
   when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
