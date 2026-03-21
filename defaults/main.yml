@@ -1,8 +1,8 @@
-# SPDX-FileCopyrightText: 2023 - 2024 Nikita Chernyi
-# SPDX-FileCopyrightText: 2023 - 2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023, 2024 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023-2025 Slavi Pantaleev
 # SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
 # SPDX-FileCopyrightText: 2025 MASH project contributors
-# SPDX-FileCopyrightText: 2025 Suguru Hirahara
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -167,6 +167,10 @@ plausible_database_username: plausible
 plausible_database_password: ""
 plausible_database_hostname: ""
 plausible_database_port: 5432
+# Specify SSL mode for Postgres database server
+# By default, we expect a local container (without SSL), so attempting SSL connections is not necessary.
+# Valid values: see https://www.postgresql.org/docs/11/libpq-ssl.html#LIBPQ-SSL-SSLMODE-STATEMENTS
+plausible_database_sslmode: disable
 plausible_database_name: plausible
 
 # When not running with the ClickHosue root user (`default`),
@@ -244,7 +248,7 @@ plausible_environment_variable_smtp_retries: 2
 plausible_environment_variable_enable_email_verification: false
 
 # Controls the DATABASE_URL environment variable
-plausible_environment_variable_database_url: "postgres://{{ plausible_database_username }}:{{ plausible_database_password }}@{{ plausible_database_hostname }}:{{ plausible_database_port }}/{{ plausible_database_name }}"
+plausible_environment_variable_database_url: "postgres://{{ plausible_database_username }}:{{ plausible_database_password }}@{{ plausible_database_hostname }}:{{ plausible_database_port }}/{{ plausible_database_name }}?sslmode={{ plausible_database_sslmode }}"
 
 # Controls the CLICKHOUSE_DATABASE_URL environment variable
 plausible_environment_variable_clickhouse_database_url: "http://{{ plausible_clickhouse_database_username }}:{{ plausible_clickhouse_database_password }}@{{ plausible_clickhouse_database_hostname }}:{{ plausible_clickhouse_database_port }}/{{ plausible_clickhouse_database_name }}"
