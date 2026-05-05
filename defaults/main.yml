@@ -39,7 +39,6 @@ plausible_container_image_tag: "{{ plausible_version }}"
 plausible_container_image_registry_prefix: "{{ plausible_container_image_registry_prefix_upstream }}"
 plausible_container_image_registry_prefix_upstream: "{{ plausible_container_image_registry_prefix_upstream_default }}"
 plausible_container_image_registry_prefix_upstream_default: ghcr.io/
-plausible_container_image_force_pull: "{{ plausible_container_image.endswith(':latest') }}"
 
 plausible_container_image_self_build: false
 plausible_container_image_self_build_name: "plausible/analytics:{{ plausible_container_image_self_build_repo_version }}"
