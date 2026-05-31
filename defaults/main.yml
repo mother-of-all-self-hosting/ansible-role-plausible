@@ -128,6 +128,7 @@ plausible_container_pre_commands_default: |-
   {{
     (['sleep ' + (plausible_container_startup_sleep_time_seconds | string)] if (plausible_container_startup_sleep_time_seconds | int) > 0 else [])
     + ['/entrypoint.sh db createdb', '/entrypoint.sh db migrate']
+    + (['/app/bin/plausible eval "' + plausible_clickhouse_dictionaries_restamp_eval_expression + '"'] if plausible_clickhouse_dictionaries_restamp_enabled else [])
   }}
 
 # Pre-start commands managed by the playbook (e.g. for cross-role wiring).
@@ -138,6 +139,44 @@ plausible_container_pre_commands_custom: []
 
 # The container's foreground/run command (executed last).
 plausible_container_run_command: "/entrypoint.sh run"
+
+# Controls whether Plausible's ClickHouse dictionaries are re-created on each
+# container startup, so that they embed the current ClickHouse connection
+# password (taken from the `CLICKHOUSE_DATABASE_URL` environment variable).
+#
+# Plausible stores the ClickHouse password *inside* the dictionary definitions
+# (`SOURCE(CLICKHOUSE(... PASSWORD '...'))`) at the time the dictionaries are
+# created (via one-time database migrations). If the ClickHouse password is
+# later rotated, these dictionaries keep authenticating with the old password,
+# causing `Code: 516 .. AUTHENTICATION_FAILED` errors on `dictGet` (the
+# `Plausible.Session.WriteBuffer` / `Plausible.Event.WriteBuffer` GenServers
+# crash during ingestion) and a crash-looping service. Neither `db migrate`
+# (the migrations are already applied) nor the periodic `LocationsSync` worker
+# (version-gated, not password-gated) re-stamp them, so the drift persists
+# across restarts/reboots until the dictionaries are explicitly re-created.
+#
+# Re-running the relevant (idempotent) data migrations re-creates the
+# dictionaries with the current password. This is appended to the container's
+# pre-start commands, so it runs *before* the application boots (between
+# `db migrate` and `run`) and is therefore unaffected by the crash loop.
+plausible_clickhouse_dictionaries_restamp_enabled: true
+
+# The Elixir expression evaluated (via `bin/plausible eval`) to re-create the
+# dictionaries that embed the ClickHouse password:
+# - `AcquisitionChannel` -> `acquisition_channel_{source_category,paid_sources}_dict`
+#   (`update_column: false` only (re)creates the dictionaries/functions; it does
+#   not rewrite the materialized columns on `events_v2`/`sessions_v2`)
+# - `LocationsSync`       -> `location_data_dict`
+#
+# `bin/plausible eval` runs on a non-booted system, so the application (and its
+# Ecto repositories and location dataset) must be started explicitly before the
+# data migrations are invoked - hence the leading `Application.ensure_all_started`.
+# This makes the step equivalent to how Plausible's own (booted) `LocationsSync`
+# worker runs these migrations.
+#
+# This is coupled to Plausible internals and may need adjusting across Plausible
+# versions.
+plausible_clickhouse_dictionaries_restamp_eval_expression: "Application.ensure_all_started(:plausible); Plausible.DataMigration.AcquisitionChannel.run(update_column: false, quiet: true); Plausible.DataMigration.LocationsSync.run()"
 
 # Controls how long to sleep during container startup.
 # Enough time should be given so that the database can start.
