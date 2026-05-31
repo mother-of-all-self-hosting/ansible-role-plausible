@@ -111,9 +111,33 @@ plausible_container_extra_arguments: "{{ plausible_container_extra_arguments_aut
 plausible_container_extra_arguments_auto: []
 plausible_container_extra_arguments_custom: []
 
-# The command to execute in the container
-plausible_container_command: |-
-  sh -c "{{ ('sleep ' + plausible_container_startup_sleep_time_seconds | string) if plausible_container_startup_sleep_time_seconds > 0 else 'true' }} && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+# The command to execute in the container.
+#
+# It is assembled from a list of "pre-start" commands (run sequentially, joined
+# with ` && `) followed by the foreground "run" command. To inject your own
+# startup steps, append to `plausible_container_pre_commands_custom` rather than
+# overriding this whole variable.
+plausible_container_command: "sh -c '{{ (plausible_container_pre_commands + [plausible_container_run_command]) | join(' && ') }}'"
+
+# The list of commands executed (sequentially, joined with ` && `) before the
+# container's foreground/run command. Use `_custom` for your own additions.
+plausible_container_pre_commands: "{{ plausible_container_pre_commands_default + plausible_container_pre_commands_auto + plausible_container_pre_commands_custom }}"
+
+# Pre-start commands managed by this role.
+plausible_container_pre_commands_default: |-
+  {{
+    (['sleep ' + (plausible_container_startup_sleep_time_seconds | string)] if (plausible_container_startup_sleep_time_seconds | int) > 0 else [])
+    + ['/entrypoint.sh db createdb', '/entrypoint.sh db migrate']
+  }}
+
+# Pre-start commands managed by the playbook (e.g. for cross-role wiring).
+plausible_container_pre_commands_auto: []
+
+# Your own additional pre-start commands.
+plausible_container_pre_commands_custom: []
+
+# The container's foreground/run command (executed last).
+plausible_container_run_command: "/entrypoint.sh run"
 
 # Controls how long to sleep during container startup.
 # Enough time should be given so that the database can start.
