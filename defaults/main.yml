@@ -90,6 +90,9 @@ plausible_container_labels_traefik_priority: 0
 plausible_container_labels_traefik_entrypoints: web-secure
 plausible_container_labels_traefik_tls: "{{ plausible_container_labels_traefik_entrypoints != 'web' }}"
 plausible_container_labels_traefik_tls_certResolver: default  # noqa var-naming
+plausible_container_labels_traefik_middleware_basic_auth_enabled: false
+# See: https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/
+plausible_container_labels_traefik_middleware_basic_auth_users: ""
 
 # plausible_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
 # See `../templates/labels.j2` for details.

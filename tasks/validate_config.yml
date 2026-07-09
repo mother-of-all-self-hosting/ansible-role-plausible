@@ -48,17 +48,18 @@
   with_items:
     - plausible_environment_variable_mailer_email
 
-- name: Validate Plausible Analytics Traefik configuration
+- name: Run if Traefik is enabled
   when: plausible_container_labels_traefik_enabled | bool
   block:
     - name: Fail if Traefik settings required for Plausible Analytics are not defined
       ansible.builtin.fail:
         msg: >-
-          You need to define a required configuration setting (`{{ item }}`).
-      when: "lookup('vars', item, default='') | string | length == 0"
+          You need to define a required configuration setting (`{{ item.name }}`).
+      when: "item.when | bool and lookup('vars', item.name, default='') | string | length == 0"
       with_items:
-        - plausible_container_labels_traefik_hostname
-        - plausible_container_labels_traefik_path_prefix
+        - { "name": "plausible_container_labels_traefik_hostname", when: true }
+        - { "name": "plausible_container_labels_traefik_path_prefix", when: true }
+        - { "name": "plausible_container_labels_traefik_middleware_basic_auth_users", when: "{{ plausible_container_labels_traefik_middleware_basic_auth_enabled }}" }
 
     - name: Fail if plausible_container_labels_traefik_path_prefix is different than /
       ansible.builtin.fail:

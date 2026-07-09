@@ -13,6 +13,11 @@ traefik.docker.network={{ plausible_container_labels_traefik_docker_network }}
 
 {% set middlewares = [] %}
 
+{% if plausible_container_labels_traefik_middleware_basic_auth_enabled %}
+{% set middlewares = middlewares + [plausible_identifier + '-basic-auth'] %}
+traefik.http.middlewares.{{ plausible_identifier }}-basic-auth.basicauth.users={{ plausible_container_labels_traefik_middleware_basic_auth_users }}
+{% endif %}
+
 {% if plausible_container_labels_traefik_path_prefix != '/' %}
 traefik.http.middlewares.{{ plausible_identifier }}-slashless-redirect.redirectregex.regex=^({{ plausible_container_labels_traefik_path_prefix | quote }})$
 traefik.http.middlewares.{{ plausible_identifier }}-slashless-redirect.redirectregex.replacement=${1}/
