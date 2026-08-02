@@ -256,57 +256,57 @@ plausible_environment_variable_base_url: "{{ plausible_scheme }}://{{ plausible_
 
 # Controls the SECRET_KEY_BASE environment variable.
 # Generate this with: `openssl rand -base64 48`
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#secret_key_base
+# See: https://github.com/plausible/community-edition/wiki/configuration#secret_key_base
 plausible_environment_variable_secret_key_base: ""
 
 # Controls the TOTP_VAULT_KEY environment variable.
 # Generate this with: `openssl rand -base64 32`
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#totp_vault_key
+# See: https://github.com/plausible/community-edition/wiki/configuration#totp_vault_key
 plausible_environment_variable_totp_vault_key: ""
 
 # Controls the DISABLE_REGISTRATION environment variable.
 # Restricts registration of new users. Possible values are true (full restriction), false (no restriction), and invite_only (only the invited users can register).
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#disable_registration
+# See: https://github.com/plausible/community-edition/wiki/configuration#disable_registration
 #
 # We use `invite_only`, as it seems like a more reasonable default to allow the first admin user
 # to be able to invite others and have them successfully sign up.
 plausible_environment_variable_disable_registration: invite_only
 
 # Controls the MAILER_ADAPTER environment variable
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#mailer_adapter
+# See: https://github.com/plausible/community-edition/wiki/configuration#mailer_adapter
 plausible_environment_variable_mailer_adapter: Bamboo.LocalAdapter
 
 # Controls the MAILER_EMAIL environment variable
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#mailer_email
+# See: https://github.com/plausible/community-edition/wiki/configuration#mailer_email
 plausible_environment_variable_mailer_email: ""
 
 # Controls the MAILER_NAME environment variable
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#mailer_name
+# See: https://github.com/plausible/community-edition/wiki/configuration#mailer_name
 plausible_environment_variable_mailer_name: 'Plausible Analytics'
 
 # Controls the SMTP_HOST_ADDR environment variable
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_host_addr
+# See: https://github.com/plausible/community-edition/wiki/configuration#smtp_host_addr
 plausible_environment_variable_smtp_host_addr: ""
 
 # Controls the SMTP_HOST_PORT environment variable
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_host_port
+# See: https://github.com/plausible/community-edition/wiki/configuration#smtp_host_port
 plausible_environment_variable_smtp_host_port: 587
 
 # Controls the SMTP_HOST_SSL_ENABLED environment variable.
 # Configures whether SMTPS (SMTP over SSL) is enabled for SMTP connection, e.g. when you use port 465.
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_host_ssl_enabled
+# See: https://github.com/plausible/community-edition/wiki/configuration#smtp_host_ssl_enabled
 plausible_environment_variable_smtp_host_ssl_enabled: false
 
 # Controls the SMTP_USER_NAME environment variable
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_user_name
+# See: https://github.com/plausible/community-edition/wiki/configuration#smtp_user_name
 plausible_environment_variable_smtp_user_name: ""
 
 # Controls the SMTP_USER_PWD environment variable
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_user_pwd
+# See: https://github.com/plausible/community-edition/wiki/configuration#smtp_user_pwd
 plausible_environment_variable_smtp_user_pwd: ""
 
 # Controls the SMTP_RETRIES environment variable
-# See: https://github.com/plausible/community-edition/tree/v2.1.1?tab=readme-ov-file#smtp_retries
+# See: https://github.com/plausible/community-edition/wiki/configuration#smtp_retries
 plausible_environment_variable_smtp_retries: 2
 
 # Controls the ENABLE_EMAIL_VERIFICATION environment variable.
