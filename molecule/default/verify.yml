@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
+# SPDX-FileCopyrightText: 2026 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Verify Plausible Analytics systemd service
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for Plausible Analytics service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: plausible.service
+      register: plausible_service
+      until: plausible_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    - name: Assert Plausible Analytics service is active
+      ansible.builtin.assert:
+        that: plausible_service.status.ActiveState == 'active'
+        fail_msg: "plausible.service not active ({{ plausible_service.status.ActiveState }})"
+        success_msg: "plausible.service is active"
+
+    - name: Retrieve Plausible Analytics service log for debugging
+      when: plausible_debug_service_enabled | bool
+      ansible.builtin.command:
+        cmd: journalctl -xeu plausible.service
+      changed_when: false
+
+    - name: Wait for Plausible Analytics HTTP endpoint to respond (up to 10m)
+      ansible.builtin.uri:
+        url: "http://localhost:8000/"
+        method: GET
+        status_code: [200, 302]
+        follow_redirects: none
+      register: plausible_endpoint
+      until: plausible_endpoint.status in [200, 302]
+      retries: 120
+      delay: 5
+
+    - name: Assert Plausible Analytics HTTP endpoint responds
+      ansible.builtin.assert:
+        that: plausible_endpoint.status in [200, 302]
+        fail_msg: "Plausible Analytics did not respond as expected ({{ plausible_endpoint.status | default('no response') }})"
+        success_msg: "Plausible Analytics responded with {{ plausible_endpoint.status }}"
+
+    - name: Show Plausible Analytics systemd service status summary
+      ansible.builtin.debug:
+        msg:
+          - "Plausible Analytics systemd: {{ plausible_service.status.ActiveState }}"
+          - "Plausible Analytics HTTP: {{ plausible_endpoint.status }}"
