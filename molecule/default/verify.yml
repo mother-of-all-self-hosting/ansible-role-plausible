@@ -1,14 +1,48 @@
 # SPDX-FileCopyrightText: 2026 Suguru Hirahara
 # SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- name: Verify Plausible Analytics systemd service
+- name: Verify Plausible Analytics
   hosts: all
   become: true
   gather_facts: false
+
+  vars:
+    plausible_verify_base_url: "http://localhost:{{ plausible_container_http_host_bind_port }}"
+
+    # The Elixir expression that seeds the account and the site. It is idempotent,
+    # so that re-running `molecule verify` while iterating does not fail on what
+    # the previous run left behind, and it reports whether it had to create the
+    # account so that the first-launch assertion below knows whether it applies.
+    #
+    # `Plausible.Site.Cache.refresh_all()` is what makes the pageview land:
+    # Plausible's ingestion pipeline reads the known domains out of an in-memory
+    # cache that it refreshes on a timer, and a site it has not picked up yet is
+    # counted as `dropped_not_found` rather than stored.
+    plausible_verify_seed_expression: >-
+      existing = Plausible.Auth.find_user_by(email: "{{ plausible_molecule_user_email }}");
+      user = existing || ({:ok, created} = Plausible.Repo.insert(Plausible.Auth.User.new(%{name: "{{ plausible_molecule_user_name }}", email: "{{ plausible_molecule_user_email }}", password: "{{ plausible_molecule_user_password }}", password_confirmation: "{{ plausible_molecule_user_password }}"})); created);
+      site = Plausible.Sites.get_by_domain("{{ plausible_molecule_site_domain }}") || ({:ok, %{site: made}} = Plausible.Sites.create(user, %{"domain" => "{{ plausible_molecule_site_domain }}", "timezone" => "UTC"}); made);
+      Plausible.Site.Cache.refresh_all();
+      IO.puts("#{if existing, do: "existing", else: "created"} #{user.id} #{site.id}")
+
   tasks:
+    # The role is not included in this playbook, so its defaults are not in
+    # scope. Reading defaults/main.yml directly ties the assertions below to the
+    # values that Renovate bumps, with nothing to keep in sync here.
+    # include_vars reads from the controller.
+    #
+    # Only leaf literals may be read out of this namespace: the file is parsed
+    # as plain YAML, so anything Jinja-derived (plausible_container_image, for
+    # example) arrives here as an unrendered template string.
+    - name: Load the Plausible Analytics role defaults
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
+        name: plausible_defaults
+
     - name: Wait for Plausible Analytics service to become active (up to 180s)
       ansible.builtin.systemd:
         name: plausible.service
@@ -29,25 +63,393 @@
         cmd: journalctl -xeu plausible.service
       changed_when: false
 
-    - name: Wait for Plausible Analytics HTTP endpoint to respond (up to 10m)
+    # An active unit only means that `docker start` has not exited yet. Plausible
+    # is an Elixir release whose container first sleeps, then creates and migrates
+    # a Postgres database and a ClickHouse database, and only afterwards boots its
+    # Phoenix endpoint - so the first signal worth anything is the endpoint
+    # answering. A fresh instance sends every visitor to its registration form,
+    # which is the state the seeding below then acts on.
+    - name: Wait for Plausible Analytics to serve its landing page (up to 10m)
       ansible.builtin.uri:
-        url: "http://localhost:8000/"
+        url: "{{ plausible_verify_base_url }}/"
         method: GET
-        status_code: [200, 302]
         follow_redirects: none
-      register: plausible_endpoint
-      until: plausible_endpoint.status in [200, 302]
+        status_code: [200, 302]
+      register: plausible_landing
+      until: plausible_landing.status in [200, 302]
       retries: 120
       delay: 5
 
-    - name: Assert Plausible Analytics HTTP endpoint responds
-      ansible.builtin.assert:
-        that: plausible_endpoint.status in [200, 302]
-        fail_msg: "Plausible Analytics did not respond as expected ({{ plausible_endpoint.status | default('no response') }})"
-        success_msg: "Plausible Analytics responded with {{ plausible_endpoint.status }}"
+    ############################################################
+    #                                                          #
+    # Negative control: the image on its own                   #
+    #                                                          #
+    ############################################################
 
-    - name: Show Plausible Analytics systemd service status summary
+    # Everything below this block is credited to the role, so it is worth
+    # establishing what the image does without it. Plausible validates its
+    # configuration while the release boots - `runtime.exs` raises on the first
+    # setting it cannot find - so the same image, started with none of the
+    # environment the role renders, dies during boot without ever listening.
+    #
+    # The image and the network are read off the running container rather than
+    # rebuilt from the role's variables, so that the negative control is
+    # guaranteed to be the very same image and the only difference is the
+    # configuration this role rendered.
+    - name: Inspect the Plausible Analytics container
+      ansible.builtin.command:
+        cmd: "docker inspect {{ plausible_defaults.plausible_identifier }}"
+      register: plausible_container_inspect
+      changed_when: false
+
+    - name: Select the Plausible Analytics container details
+      ansible.builtin.set_fact:
+        plausible_container: "{{ (plausible_container_inspect.stdout | from_json)[0] }}"
+
+    - name: Remove any stock Plausible Analytics container left behind by an earlier verification
+      ansible.builtin.command:
+        cmd: "docker rm -f {{ plausible_molecule_standalone_identifier }}"
+      register: plausible_standalone_removal
+      changed_when: plausible_standalone_removal.rc == 0
+      failed_when: false
+
+    - name: Start a stock Plausible Analytics container with no configuration from this role
+      ansible.builtin.command:
+        cmd: >-
+          docker run --detach
+          --name={{ plausible_molecule_standalone_identifier }}
+          --network={{ plausible_container.HostConfig.NetworkMode }}
+          {{ plausible_container.Config.Image }}
+          {{ plausible_defaults.plausible_container_run_command }}
+      changed_when: true
+
+    - name: Give the stock Plausible Analytics container time to fail its startup (up to 60s)
+      ansible.builtin.command:
+        cmd: "docker inspect {{ plausible_molecule_standalone_identifier }}"
+      register: plausible_standalone_inspect
+      changed_when: false
+      until: not (plausible_standalone_inspect.stdout | from_json)[0].State.Running
+      retries: 30
+      delay: 2
+
+    - name: Read what the stock Plausible Analytics container had to say
+      ansible.builtin.command:
+        cmd: "docker logs {{ plausible_molecule_standalone_identifier }}"
+      register: plausible_standalone_logs
+      changed_when: false
+
+    - name: Assert the stock Plausible Analytics container refuses to start unconfigured
+      ansible.builtin.assert:
+        that:
+          - not (plausible_standalone_inspect.stdout | from_json)[0].State.Running
+          - (plausible_standalone_inspect.stdout | from_json)[0].State.ExitCode != 0
+          - "'BASE_URL configuration option is required' in plausible_standalone_logs.stderr"
+        fail_msg: >-
+          A stock Plausible Analytics container did not refuse to start without this role's
+          configuration - the probes below would no longer prove that the role is what makes
+          Plausible serve. It said: {{ plausible_standalone_logs.stderr[:400] | default('nothing') }}
+        success_msg: "A stock Plausible Analytics container refuses to start without this role's configuration"
+
+    - name: Remove the stock Plausible Analytics container
+      ansible.builtin.command:
+        cmd: "docker rm -f {{ plausible_molecule_standalone_identifier }}"
+      changed_when: true
+
+    ############################################################
+    #                                                          #
+    # The running instance                                     #
+    #                                                          #
+    ############################################################
+
+    # Plausible's own account of its version is unusable here: it parses the
+    # `BUILD_METADATA` environment variable its image carries, and the variable
+    # baked into the v3.2.1 image is not valid JSON (the `annotations` array
+    # holds unquoted strings), so Plausible logs a parse warning and leaves
+    # `runtime_metadata[:version]` nil. `/app/bin/plausible version` is no help
+    # either - every release calls itself `plausible 0.0.1`. What is left is the
+    # label on the image the running container was actually created from, which
+    # still fails if a bump produced an image that cannot be pulled or booted.
+    - name: Assert the running Plausible Analytics container is the version this role installs
+      ansible.builtin.assert:
+        that:
+          - plausible_container.Config.Labels['org.opencontainers.image.version'] == plausible_defaults.plausible_version
+          - plausible_container.Config.Image.endswith(':' ~ plausible_defaults.plausible_version)
+        fail_msg: >-
+          The running container was created from {{ plausible_container.Config.Image }}
+          (labelled {{ plausible_container.Config.Labels['org.opencontainers.image.version'] | default('nothing') }}),
+          but the role asks for {{ plausible_defaults.plausible_version }}
+        success_msg: "The running container is Plausible Analytics {{ plausible_defaults.plausible_version }}"
+
+    # Plausible runs Ecto migrations against ClickHouse on start-up, out of the
+    # `db migrate` pre-start command the role puts in the container's command
+    # line. Nothing else in this scenario creates these, so their presence is
+    # what proves that the ClickHouse credentials the role renders into
+    # CLICKHOUSE_DATABASE_URL work and that the migrations ran.
+    - name: Read the tables Plausible Analytics created in ClickHouse
+      ansible.builtin.command:
+        cmd: >-
+          docker exec {{ clickhouse_identifier }}
+          clickhouse-client
+          --user {{ plausible_defaults.plausible_clickhouse_database_username }}
+          --password {{ plausible_clickhouse_database_password }}
+          --database {{ plausible_defaults.plausible_clickhouse_database_name }}
+          --query "SELECT name FROM system.tables WHERE database = '{{ plausible_defaults.plausible_clickhouse_database_name }}' ORDER BY name"
+      register: plausible_clickhouse_tables
+      changed_when: false
+
+    - name: Assert Plausible Analytics migrated its ClickHouse database
+      ansible.builtin.assert:
+        that:
+          - "'events_v2' in plausible_clickhouse_tables.stdout_lines"
+          - "'sessions_v2' in plausible_clickhouse_tables.stdout_lines"
+          - "'location_data_dict' in plausible_clickhouse_tables.stdout_lines"
+        fail_msg: >-
+          ClickHouse holds {{ plausible_clickhouse_tables.stdout_lines | join(', ') | default('nothing') }},
+          which is not what Plausible's migrations produce
+        success_msg: "Plausible Analytics migrated its ClickHouse database"
+
+    # The Postgres side of the same story. Plausible keeps accounts, teams and
+    # sites here, and `schema_migrations` is only populated by the `db migrate`
+    # pre-start command running successfully against DATABASE_URL.
+    - name: Count the Postgres migrations Plausible Analytics applied
+      ansible.builtin.command:
+        cmd: >-
+          docker exec {{ postgres_identifier }}
+          psql -U {{ plausible_database_username }} -d {{ plausible_database_name }}
+          -tAc "SELECT count(*) FROM schema_migrations"
+      register: plausible_postgres_migrations
+      changed_when: false
+
+    - name: Assert Plausible Analytics migrated its Postgres database
+      ansible.builtin.assert:
+        that: plausible_postgres_migrations.stdout | trim | int > 0
+        fail_msg: "Plausible applied {{ plausible_postgres_migrations.stdout | trim | default('no') }} Postgres migrations"
+        success_msg: "Plausible Analytics applied {{ plausible_postgres_migrations.stdout | trim }} Postgres migrations"
+
+    ############################################################
+    #                                                          #
+    # An account, a site, and a pageview                       #
+    #                                                          #
+    ############################################################
+
+    - name: Seed a Plausible Analytics account and site
+      ansible.builtin.command:
+        cmd: >-
+          docker exec {{ plausible_defaults.plausible_identifier }}
+          /app/bin/plausible rpc {{ plausible_verify_seed_expression | trim | quote }}
+      register: plausible_seed
+      changed_when: true
+
+    - name: Select what the seeding produced
+      ansible.builtin.set_fact:
+        plausible_seed_created: "{{ (plausible_seed.stdout_lines | last | split(' '))[0] == 'created' }}"
+        plausible_seed_site_id: "{{ (plausible_seed.stdout_lines | last | split(' '))[2] }}"
+
+    - name: Assert the seeding produced an account and a site
+      ansible.builtin.assert:
+        that:
+          - plausible_seed.stdout_lines | last | split(' ') | length == 3
+          - plausible_seed_site_id | int > 0
+        fail_msg: "Plausible did not seed an account and a site: {{ plausible_seed.stdout | default('nothing') }}"
+        success_msg: "Plausible knows {{ plausible_molecule_user_email }} and site {{ plausible_seed_site_id }}"
+
+    # Only meaningful on the fresh instance that `molecule test` provides, which
+    # is why it is conditional: an instance that already carried the account
+    # (a repeated `molecule verify`) was never in the first-launch state.
+    - name: Assert a fresh Plausible Analytics sends visitors to its registration form
+      when: plausible_seed_created | bool
+      ansible.builtin.assert:
+        that:
+          - plausible_landing.status == 302
+          - plausible_landing.location | urlsplit('path') == '/register'
+        fail_msg: >-
+          A fresh Plausible answered {{ plausible_landing.status }} at / and pointed at
+          {{ plausible_landing.location | default('nothing') }}, expected a redirect to /register
+        success_msg: "A fresh Plausible Analytics offers its registration form"
+
+    # With an account in place, whether the registration form is still served is
+    # decided by DISABLE_REGISTRATION, which the role renders into the container's
+    # environment file out of `plausible_environment_variable_disable_registration`.
+    # Its `invite_only` default turns the form away; `false` would keep serving it.
+    # This is the whole path from a role default to the behaviour of the process.
+    - name: Retrieve the Plausible Analytics registration form once an account exists
+      ansible.builtin.uri:
+        url: "{{ plausible_verify_base_url }}/register"
+        method: GET
+        follow_redirects: none
+        status_code: [200, 302, 404]
+      register: plausible_register
+
+    - name: Assert Plausible Analytics honours the registration policy the role configures
+      ansible.builtin.assert:
+        that:
+          - plausible_defaults.plausible_environment_variable_disable_registration == 'invite_only'
+          - plausible_register.status == 302
+          - plausible_register.location | urlsplit('path') == '/login'
+        fail_msg: >-
+          Plausible answered {{ plausible_register.status }} at /register and pointed at
+          {{ plausible_register.location | default('nothing') }}, so DISABLE_REGISTRATION=invite_only
+          did not reach the running process
+        success_msg: "Plausible Analytics turns registration away, as DISABLE_REGISTRATION=invite_only asks"
+
+    - name: Retrieve the Plausible Analytics login form
+      ansible.builtin.uri:
+        url: "{{ plausible_verify_base_url }}/login"
+        method: GET
+        return_content: true
+        status_code: [200]
+      register: plausible_login_form
+
+    # `SECURE_COOKIE` is derived from `plausible_scheme`, which this scenario sets
+    # to `http`, and it decides whether Plausible marks the session cookie it is
+    # handing out here `Secure`. Reading the flag off a cookie the running process
+    # just minted is the second path this scenario walks from a role variable into
+    # behaviour - and a session cookie marked `Secure` over plain HTTP would be
+    # one that no browser would ever send back.
+    - name: Assert Plausible Analytics hands out a session cookie the scheme allows
+      ansible.builtin.assert:
+        that:
+          - "'_plausible_key=' in plausible_login_form.set_cookie"
+          - "'; secure' not in plausible_login_form.set_cookie | lower"
+        fail_msg: >-
+          Plausible set {{ plausible_login_form.set_cookie | default('no cookie') }} over plain HTTP,
+          so SECURE_COOKIE did not reach the running process as `plausible_scheme` asks
+        success_msg: "Plausible Analytics hands out a session cookie without marking it Secure, as plain HTTP requires"
+
+    # Phoenix protects the form with a per-session CSRF token, so logging in
+    # means playing the form back the way a browser would.
+    - name: Select the Plausible Analytics login form token
+      ansible.builtin.set_fact:
+        plausible_login_csrf_token: >-
+          {{ plausible_login_form.content | regex_search('name="_csrf_token"[^>]*value="([^"]+)"', '\1') | first }}
+
+    # Redirects are followed rather than inspected, because ansible.builtin.uri
+    # only reports cookies for responses it considers successful - the 302 that
+    # Plausible answers a good login with arrives without any - and the session
+    # this establishes is what the authenticated request below needs.
+    - name: Log in to Plausible Analytics
+      ansible.builtin.uri:
+        url: "{{ plausible_verify_base_url }}/login"
+        method: POST
+        follow_redirects: all
+        body_format: form-urlencoded
+        body:
+          _csrf_token: "{{ plausible_login_csrf_token }}"
+          user[email]: "{{ plausible_molecule_user_email }}"
+          user[password]: "{{ plausible_molecule_user_password }}"
+        headers:
+          Cookie: "{{ plausible_login_form.cookies_string }}"
+        status_code: [200]
+      register: plausible_login
+
+    # Rejected credentials re-render the login form in place, with neither a
+    # redirect nor the `logged_in` cookie that Plausible only sets once it has
+    # accepted an account.
+    - name: Assert Plausible Analytics accepted the account
+      ansible.builtin.assert:
+        that:
+          - plausible_login.redirected
+          - "'logged_in' in plausible_login.cookies"
+          - "'_plausible_key' in plausible_login.cookies"
+        fail_msg: >-
+          Plausible did not log {{ plausible_molecule_user_email }} in - it ended up at
+          {{ plausible_login.url }} holding {{ plausible_login.cookies | list }}
+        success_msg: "Plausible Analytics logged {{ plausible_molecule_user_email }} in"
+
+    # `/sites` answers anonymous visitors too, with a page that lists nothing, so
+    # it is the seeded domain appearing on it that proves the session is real and
+    # that the site reached Postgres and came back.
+    - name: Retrieve the Plausible Analytics site list as the logged-in account
+      ansible.builtin.uri:
+        url: "{{ plausible_verify_base_url }}/sites"
+        method: GET
+        return_content: true
+        headers:
+          Cookie: "{{ plausible_login.cookies_string }}"
+        status_code: [200]
+      register: plausible_sites
+
+    - name: Assert Plausible Analytics serves the seeded site to the logged-in account
+      ansible.builtin.assert:
+        that: plausible_molecule_site_domain in plausible_sites.content
+        fail_msg: "Plausible did not list {{ plausible_molecule_site_domain }} among the account's sites"
+        success_msg: "Plausible Analytics lists {{ plausible_molecule_site_domain }} for {{ plausible_molecule_user_email }}"
+
+    # The one thing Plausible exists to do. This is the public ingestion endpoint
+    # that its tracking script calls, and it answers `ok` whether or not the event
+    # is kept - only ClickHouse can say whether it was.
+    - name: Send a pageview to Plausible Analytics
+      ansible.builtin.uri:
+        url: "{{ plausible_verify_base_url }}/api/event"
+        method: POST
+        body_format: json
+        body:
+          name: pageview
+          domain: "{{ plausible_molecule_site_domain }}"
+          url: "http://{{ plausible_molecule_site_domain }}{{ plausible_molecule_event_pathname }}"
+          referrer: "{{ plausible_molecule_event_referrer }}"
+        headers:
+          User-Agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+          X-Forwarded-For: "{{ plausible_molecule_event_ip }}"
+        return_content: true
+        status_code: [202]
+      register: plausible_ingest
+
+    - name: Assert Plausible Analytics accepted the pageview
+      ansible.builtin.assert:
+        that: (plausible_ingest.content | trim) == 'ok'
+        fail_msg: "Plausible answered {{ plausible_ingest.content | default('nothing') }} to the pageview"
+        success_msg: "Plausible Analytics accepted the pageview"
+
+    # Plausible buffers events in memory and flushes them to ClickHouse on a
+    # timer, so the row shows up a few seconds after the request was answered.
+    # This is the honest end of the round-trip: an HTTP request the role's
+    # container answered, stored in the ClickHouse instance the role was wired to.
+    - name: Wait for the pageview to land in ClickHouse (up to 120s)
+      ansible.builtin.command:
+        cmd: >-
+          docker exec {{ clickhouse_identifier }}
+          clickhouse-client
+          --user {{ plausible_defaults.plausible_clickhouse_database_username }}
+          --password {{ plausible_clickhouse_database_password }}
+          --database {{ plausible_defaults.plausible_clickhouse_database_name }}
+          --query "SELECT name, site_id, hostname, pathname, referrer_source, country_code, browser FROM events_v2 WHERE pathname = '{{ plausible_molecule_event_pathname }}' LIMIT 1 FORMAT TSV"
+      register: plausible_stored_event
+      changed_when: false
+      until: plausible_stored_event.stdout | trim | length > 0
+      retries: 24
+      delay: 5
+
+    - name: Select the stored pageview
+      ansible.builtin.set_fact:
+        plausible_stored_event_fields: "{{ plausible_stored_event.stdout | trim | split('\t') }}"
+
+    # `country_code` and `referrer_source` are not carried by the request: Plausible
+    # derives them, the first through the `location_data_dict` dictionary it keeps in
+    # ClickHouse and the second by parsing the referrer. Asserting them is what makes
+    # this a test of a working analytics pipeline rather than of a row having appeared.
+    - name: Assert ClickHouse holds the pageview Plausible Analytics was sent
+      ansible.builtin.assert:
+        that:
+          - plausible_stored_event_fields[0] == 'pageview'
+          - plausible_stored_event_fields[1] == plausible_seed_site_id
+          - plausible_stored_event_fields[2] == plausible_molecule_site_domain
+          - plausible_stored_event_fields[3] == plausible_molecule_event_pathname
+          - plausible_stored_event_fields[4] == 'DuckDuckGo'
+          - plausible_stored_event_fields[5] == 'US'
+          - plausible_stored_event_fields[6] == 'Chrome'
+        fail_msg: "ClickHouse holds an unexpected pageview: {{ plausible_stored_event.stdout | trim | default('nothing') }}"
+        success_msg: >-
+          ClickHouse holds the pageview for site {{ plausible_stored_event_fields[1] }}
+          at {{ plausible_stored_event_fields[3] }}, attributed to
+          {{ plausible_stored_event_fields[4] }} from {{ plausible_stored_event_fields[5] }}
+
+    - name: Show Plausible Analytics verification summary
       ansible.builtin.debug:
         msg:
           - "Plausible Analytics systemd: {{ plausible_service.status.ActiveState }}"
-          - "Plausible Analytics HTTP: {{ plausible_endpoint.status }}"
+          - "Version: {{ plausible_container.Config.Labels['org.opencontainers.image.version'] }}"
+          - "ClickHouse tables: {{ plausible_clickhouse_tables.stdout_lines | length }}"
+          - "Postgres migrations: {{ plausible_postgres_migrations.stdout | trim }}"
+          - "Account: {{ plausible_molecule_user_email }} (site {{ plausible_seed_site_id }})"
+          - "Stored pageview: {{ plausible_stored_event.stdout | trim }}"

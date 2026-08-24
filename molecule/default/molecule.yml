@@ -31,6 +31,34 @@ provisioner:
         # Helper variables
         plausible_debug_service_enabled: false
 
+        # The same image the role installs, started again with none of the
+        # configuration the role renders, to establish what Plausible does on
+        # its own before anything below is credited to the role.
+        plausible_molecule_standalone_identifier: plausible-molecule-default-standalone
+
+        # The account the verification seeds and then logs in as over HTTP.
+        # Plausible has no way to create the first user from the outside: its
+        # registration form is a LiveView that creates the account over a
+        # WebSocket and only afterwards posts to /login to open the session, so
+        # the account is seeded through Plausible's own Auth API instead and the
+        # login that follows is what exercises the real HTTP surface.
+        plausible_molecule_user_name: Molecule Tester
+        plausible_molecule_user_email: molecule@example.com
+        plausible_molecule_user_password: plausible-molecule-user-password
+
+        # The site that the pageview below is sent for. Plausible drops events
+        # for domains it does not know, so this has to exist before ingestion.
+        plausible_molecule_site_domain: molecule.example.com
+        plausible_molecule_event_pathname: /molecule-probe
+        plausible_molecule_event_referrer: https://duckduckgo.com/
+
+        # A globally routable address, so that the pageview is attributed to a
+        # country. Plausible resolves that through the `location_data_dict`
+        # dictionary it keeps in ClickHouse, which is the very thing
+        # `plausible_clickhouse_dictionaries_restamp_enabled` exists to keep
+        # working - a country in the stored event proves the dictionary answers.
+        plausible_molecule_event_ip: 8.8.8.8
+
         # Variables for Plausible Analytics
         plausible_uid: 1000
         plausible_gid: 1000
@@ -59,6 +87,9 @@ provisioner:
         # Variables for Postgres
         postgres_uid: 1000
         postgres_gid: 1000
+        # Spelled out (it repeats the role default) so that the verify play, where
+        # the Postgres role's defaults are not in scope, can address the container.
+        postgres_identifier: postgres
         postgres_connection_password: postgres_password
         postgres_container_network: "{{ plausible_container_network }}"
         postgres_managed_databases: |
@@ -73,6 +104,9 @@ provisioner:
         # Variables for ClickHouse
         clickhouse_uid: 1000
         clickhouse_gid: 1000
+        # Spelled out (it repeats the role default) so that the verify play, where
+        # the ClickHouse role's defaults are not in scope, can address the container.
+        clickhouse_identifier: clickhouse
         clickhouse_root_password: password
         clickhouse_container_network: "{{ plausible_container_network }}"
         clickhouse_managed_databases: |
