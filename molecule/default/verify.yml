@@ -98,7 +98,7 @@
     # configuration this role rendered.
     - name: Inspect the Plausible Analytics container
       ansible.builtin.command:
-        cmd: "docker inspect {{ plausible_defaults.plausible_identifier }}"
+        cmd: "docker container inspect {{ plausible_defaults.plausible_identifier }}"
       register: plausible_container_inspect
       changed_when: false
 
@@ -125,7 +125,7 @@
 
     - name: Give the stock Plausible Analytics container time to fail its startup (up to 60s)
       ansible.builtin.command:
-        cmd: "docker inspect {{ plausible_molecule_standalone_identifier }}"
+        cmd: "docker container inspect {{ plausible_molecule_standalone_identifier }}"
       register: plausible_standalone_inspect
       changed_when: false
       until: not (plausible_standalone_inspect.stdout | from_json)[0].State.Running
