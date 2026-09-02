@@ -18,7 +18,7 @@ roles:
   - name: ansible-role-clickhouse
     src: https://github.com/mother-of-all-self-hosting/ansible-role-clickhouse
     scm: git
-    version: v26.8.1.2041-0
+    version: v26.8.2.7-0
 
   - name: ansible-role-postgres
     src: https://github.com/mother-of-all-self-hosting/ansible-role-postgres
