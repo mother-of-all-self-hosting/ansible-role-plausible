@@ -169,16 +169,13 @@
     # either - every release calls itself `plausible 0.0.1`. What is left is the
     # label on the image the running container was actually created from, which
     # still fails if a bump produced an image that cannot be pulled or booted.
-    - name: Assert the running Plausible Analytics container is the version this role installs
+    - name: Assert the running Plausible Analytics is the version this role installs
       ansible.builtin.assert:
         that:
           - plausible_container.Config.Labels['org.opencontainers.image.version'] == plausible_defaults.plausible_version
           - plausible_container.Config.Image.endswith(':' ~ plausible_defaults.plausible_version)
-        fail_msg: >-
-          The running container was created from {{ plausible_container.Config.Image }}
-          (labelled {{ plausible_container.Config.Labels['org.opencontainers.image.version'] | default('nothing') }}),
-          but the role asks for {{ plausible_defaults.plausible_version }}
-        success_msg: "The running container is Plausible Analytics {{ plausible_defaults.plausible_version }}"
+        fail_msg: "Plausible Analytics reports {{ plausible_container.Config.Labels['org.opencontainers.image.version'] | default('none') }}, expected {{ plausible_defaults.plausible_version }}"
+        success_msg: "Plausible Analytics reports {{ plausible_container.Config.Labels['org.opencontainers.image.version'] }}"
 
     # Plausible runs Ecto migrations against ClickHouse on start-up, out of the
     # `db migrate` pre-start command the role puts in the container's command
