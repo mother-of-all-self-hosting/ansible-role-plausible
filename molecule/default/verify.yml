@@ -147,7 +147,7 @@
         fail_msg: >-
           A stock Plausible Analytics container did not refuse to start without this role's
           configuration - the probes below would no longer prove that the role is what makes
-          Plausible serve. It said: {{ plausible_standalone_logs.stderr[:400] | default('nothing') }}
+          Plausible serve. It said: {{ plausible_standalone_logs.stderr[:400] | default('none') }}
         success_msg: "A stock Plausible Analytics container refuses to start without this role's configuration"
 
     - name: Remove the stock Plausible Analytics container
@@ -201,7 +201,7 @@
           - "'sessions_v2' in plausible_clickhouse_tables.stdout_lines"
           - "'location_data_dict' in plausible_clickhouse_tables.stdout_lines"
         fail_msg: >-
-          ClickHouse holds {{ plausible_clickhouse_tables.stdout_lines | join(', ') | default('nothing') }},
+          ClickHouse holds {{ plausible_clickhouse_tables.stdout_lines | join(', ') | default('none') }},
           which is not what Plausible's migrations produce
         success_msg: "Plausible Analytics migrated its ClickHouse database"
 
@@ -247,7 +247,7 @@
         that:
           - plausible_seed.stdout_lines | last | split(' ') | length == 3
           - plausible_seed_site_id | int > 0
-        fail_msg: "Plausible did not seed an account and a site: {{ plausible_seed.stdout | default('nothing') }}"
+        fail_msg: "Plausible did not seed an account and a site: {{ plausible_seed.stdout | default('none') }}"
         success_msg: "Plausible knows {{ plausible_molecule_user_email }} and site {{ plausible_seed_site_id }}"
 
     # Only meaningful on the fresh instance that `molecule test` provides, which
@@ -261,7 +261,7 @@
           - plausible_landing.location | urlsplit('path') == '/register'
         fail_msg: >-
           A fresh Plausible answered {{ plausible_landing.status }} at / and pointed at
-          {{ plausible_landing.location | default('nothing') }}, expected a redirect to /register
+          {{ plausible_landing.location | default('none') }}, expected a redirect to /register
         success_msg: "A fresh Plausible Analytics offers its registration form"
 
     # With an account in place, whether the registration form is still served is
@@ -285,7 +285,7 @@
           - plausible_register.location | urlsplit('path') == '/login'
         fail_msg: >-
           Plausible answered {{ plausible_register.status }} at /register and pointed at
-          {{ plausible_register.location | default('nothing') }}, so DISABLE_REGISTRATION=invite_only
+          {{ plausible_register.location | default('none') }}, so DISABLE_REGISTRATION=invite_only
           did not reach the running process
         success_msg: "Plausible Analytics turns registration away, as DISABLE_REGISTRATION=invite_only asks"
 
@@ -395,7 +395,7 @@
     - name: Assert Plausible Analytics accepted the pageview
       ansible.builtin.assert:
         that: (plausible_ingest.content | trim) == 'ok'
-        fail_msg: "Plausible answered {{ plausible_ingest.content | default('nothing') }} to the pageview"
+        fail_msg: "Plausible answered {{ plausible_ingest.content | default('none') }} to the pageview"
         success_msg: "Plausible Analytics accepted the pageview"
 
     # Plausible buffers events in memory and flushes them to ClickHouse on a
@@ -435,18 +435,18 @@
           - plausible_stored_event_fields[4] == 'DuckDuckGo'
           - plausible_stored_event_fields[5] == 'US'
           - plausible_stored_event_fields[6] == 'Chrome'
-        fail_msg: "ClickHouse holds an unexpected pageview: {{ plausible_stored_event.stdout | trim | default('nothing') }}"
+        fail_msg: "ClickHouse holds an unexpected pageview: {{ plausible_stored_event.stdout | trim | default('none') }}"
         success_msg: >-
           ClickHouse holds the pageview for site {{ plausible_stored_event_fields[1] }}
           at {{ plausible_stored_event_fields[3] }}, attributed to
           {{ plausible_stored_event_fields[4] }} from {{ plausible_stored_event_fields[5] }}
 
-    - name: Show Plausible Analytics verification summary
+    - name: Show the Plausible Analytics verification summary
       ansible.builtin.debug:
         msg:
           - "Plausible Analytics systemd: {{ plausible_service.status.ActiveState }}"
-          - "Version: {{ plausible_container.Config.Labels['org.opencontainers.image.version'] }}"
-          - "ClickHouse tables: {{ plausible_clickhouse_tables.stdout_lines | length }}"
-          - "Postgres migrations: {{ plausible_postgres_migrations.stdout | trim }}"
-          - "Account: {{ plausible_molecule_user_email }} (site {{ plausible_seed_site_id }})"
-          - "Stored pageview: {{ plausible_stored_event.stdout | trim }}"
+          - "Plausible Analytics version: {{ plausible_container.Config.Labels['org.opencontainers.image.version'] }}"
+          - "Plausible Analytics ClickHouse tables: {{ plausible_clickhouse_tables.stdout_lines | length }}"
+          - "Plausible Analytics Postgres migrations: {{ plausible_postgres_migrations.stdout | trim }}"
+          - "Plausible Analytics account: {{ plausible_molecule_user_email }} (site {{ plausible_seed_site_id }})"
+          - "Plausible Analytics stored pageview: {{ plausible_stored_event.stdout | trim }}"
