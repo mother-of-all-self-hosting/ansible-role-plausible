@@ -31,14 +31,9 @@
 
   tasks:
     # The role is not included in this playbook, so its defaults are not in
-    # scope. Reading defaults/main.yml directly ties the assertions below to the
-    # values that Renovate bumps, with nothing to keep in sync here.
-    # include_vars reads from the controller.
-    #
-    # Only leaf literals may be read out of this namespace: the file is parsed
-    # as plain YAML, so anything Jinja-derived (plausible_container_image, for
-    # example) arrives here as an unrendered template string.
-    - name: Load the Plausible Analytics role defaults
+    # scope. Reading defaults/main.yml directly ties the version assertion
+    # below.
+    - name: Load the role defaults
       ansible.builtin.include_vars:
         file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
         name: plausible_defaults
