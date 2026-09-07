@@ -94,12 +94,12 @@
     - name: Inspect the Plausible Analytics container
       ansible.builtin.command:
         cmd: "docker container inspect {{ plausible_defaults.plausible_identifier }}"
-      register: plausible_container_inspect
+      register: plausible_container_raw
       changed_when: false
 
     - name: Select the Plausible Analytics container details
       ansible.builtin.set_fact:
-        plausible_container: "{{ (plausible_container_inspect.stdout | from_json)[0] }}"
+        plausible_container: "{{ (plausible_container_raw.stdout | from_json)[0] }}"
 
     - name: Remove any stock Plausible Analytics container left behind by an earlier verification
       ansible.builtin.command:
