@@ -117,7 +117,7 @@
     - name: Start a stock Plausible Analytics container with no configuration from this role
       ansible.builtin.command:
         cmd: >-
-          docker run --detach
+          docker run -d
           --name={{ plausible_molecule_standalone_identifier }}
           --network={{ plausible_container.HostConfig.NetworkMode }}
           {{ plausible_container.Config.Image }}
