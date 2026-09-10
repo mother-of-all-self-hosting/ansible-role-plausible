@@ -30,6 +30,8 @@
       IO.puts("#{if existing, do: "existing", else: "created"} #{user.id} #{site.id}")
 
   tasks:
+    - name: Verify that Plausible Analytics works
+      block:
     # The role is not included in this playbook, so its defaults are not in
     # scope. Reading defaults/main.yml directly ties the version assertion
     # below.
@@ -451,3 +453,19 @@
           - "Plausible Analytics Postgres migrations: {{ plausible_postgres_migrations.stdout | trim }}"
           - "Plausible Analytics account: {{ plausible_molecule_user_email }} (site {{ plausible_seed_site_id }})"
           - "Plausible Analytics stored pageview: {{ plausible_stored_event.stdout | trim }}"
+
+      rescue:
+        # Whatever went wrong, the reason is almost always in the systemd service log.
+        - name: Retrieve the Plausible Analytics systemd service log
+          ansible.builtin.command:
+            cmd: journalctl --no-pager --output=cat --unit=plausible.service
+          register: plausible_service_log
+          changed_when: false
+
+        - name: Show the Plausible Analytics systemd service log
+          ansible.builtin.debug:
+            var: plausible_service_log.stdout_lines
+
+        - name: Fail because verification did not pass
+          ansible.builtin.fail:
+            msg: "Plausible Analytics verification failed. The systemd service log is printed above."
