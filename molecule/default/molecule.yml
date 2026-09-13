@@ -31,6 +31,7 @@ provisioner:
       all:
         # Helper variables
         plausible_debug_service_enabled: false
+        plausible_restarts_check_enabled: true
 
         # The same image the role installs, started again with none of the
         # configuration the role renders, to establish what Plausible does on
