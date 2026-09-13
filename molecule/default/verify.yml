@@ -110,7 +110,7 @@
         # configuration this role rendered.
         - name: Inspect the Plausible Analytics container
           ansible.builtin.command:
-            cmd: "docker container inspect {{ plausible_defaults.plausible_identifier }}"
+            cmd: docker container inspect plausible
           register: plausible_container_raw
           changed_when: false
 
