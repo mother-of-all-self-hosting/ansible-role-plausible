@@ -2,7 +2,7 @@
 
 roles:
   - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-clickhouse.git
-    version: v26.9.1.1629-0
+    version: v26.9.2.8-0
     name: ansible-role-clickhouse
   - src: git+https://github.com/geerlingguy/ansible-role-docker.git
     version: 8.0.0
