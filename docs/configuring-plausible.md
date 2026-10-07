@@ -20,17 +20,17 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Setting up Plausible Analytics
 
-This is an [Ansible](https://www.ansible.com/) role which installs [Plausible Analytics](https://github.com/getplausible/plausible) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
+This is an [Ansible](https://www.ansible.com/) role which installs [Plausible Analytics](https://plausible.io/) ([Community Edition](https://plausible.io/blog/community-edition)) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
 
-Plausible Analytics is a feedback portal for feature requests and suggestions.
+Plausible Analytics is intuitive, lightweight and open-source web analytics. No cookies and fully compliant with GDPR, CCPA and PECR.
 
-See the project's [documentation](https://docs.plausible.io/) to learn what Plausible Analytics does and why it might be useful to you.
+See the project's [documentation](https://plausible.io/docs) to learn what Plausible Analytics does and why it might be useful to you.
 
 ## Prerequisites
 
-To run a Plausible Analytics instance it is necessary to prepare a [Postgres](https://www.postgresql.org/) database server.
+To run a Plausible Analytics instance it is necessary to prepare [ClickHouse](https://clickhouse.com/) and [Postgres](https://www.postgresql.org/) database servers.
 
-If you are looking for an Ansible role for Postgres, you can check out [ansible-role-postgres](https://github.com/mother-of-all-self-hosting/ansible-role-postgres) maintained by the [Mother-of-All-Self-Hosting (MASH)](https://github.com/mother-of-all-self-hosting) team.
+If you are looking for an Ansible role for them, you can check out [ansible-role-clickhouse](https://github.com/mother-of-all-self-hosting/ansible-role-clickhouse) and [ansible-role-postgres](https://github.com/mother-of-all-self-hosting/ansible-role-postgres), both of which are maintained by the [Mother-of-All-Self-Hosting (MASH)](https://github.com/mother-of-all-self-hosting) team.
 
 ## Adjusting the playbook configuration
 
@@ -66,9 +66,9 @@ After adjusting the hostname, make sure to adjust your DNS records to point the 
 
 **Note**: hosting Plausible Analytics under a subpath (by configuring the `plausible_path_prefix` variable) does not seem to be possible due to Plausible Analytics's technical limitations.
 
-### Set variables for the database server
+### Set variables for the database servers
 
-To have the Plausible Analytics instance connect to your Postgres server, add the following configuration to your `vars.yml` file.
+To have the Plausible Analytics instance connect to your ClickHouse and Postgres servers, add the following configuration to your `vars.yml` file.
 
 ```yaml
 plausible_database_hostname: YOUR_POSTGRES_SERVER_HOSTNAME_HERE
@@ -76,60 +76,79 @@ plausible_database_port: 5432
 plausible_database_username: YOUR_POSTGRES_SERVER_USERNAME_HERE
 plausible_database_password: YOUR_POSTGRES_SERVER_PASSWORD_HERE
 plausible_database_name: YOUR_POSTGRES_SERVER_DATABASE_NAME_HERE
+
+plausible_clickhouse_database_hostname: YOUR_CLICKHOUSE_SERVER_HOSTNAME_HERE
+plausible_clickhouse_database_port: 8123
+plausible_clickhouse_database_username: YOUR_CLICKHOUSE_SERVER_USERNAME_HERE
+plausible_clickhouse_database_password: YOUR_CLICKHOUSE_SERVER_PASSWORD_HERE
+plausible_clickhouse_database_name: YOUR_CLICKHOUSE_SERVER_DATABASE_NAME_HERE
 ```
 
 Make sure to replace the placeholders with your own values.
 
-### Set a random string
+>[!NOTE]
+> Plausible also requires the following grants on ClickHouse:
+>
+> 1. `GRANT SELECT ON system.replicas TO plausible;`
+> 2. `GRANT SELECT ON system.parts TO plausible;`
 
-You also need to set a random secure string. To do so, add the following configuration to your `vars.yml` file. The value can be generated with `pwgen -s 64 1` or in another way.
+### Set random strings
+
+You also need to set random secure strings. To do so, add the following configuration to your `vars.yml` file:
 
 ```yaml
-plausible_environment_variables_jwt_secret: YOUR_SECRET_KEY_HERE
+# Generate this with: `openssl rand -base64 48`
+plausible_environment_variable_secret_key_base: YOUR_SECRET_KEY_HERE
+
+# Generate this with: `openssl rand -base64 32`
+plausible_environment_variable_totp_vault_key: YOUR_SECRET_KEY_FOR_TOTP_VAULT_HERE
 ```
 
-### Configure the mailer
+### Setting user IDs for administrators (optional)
 
-It is also necessary to configure a mailer to enable email functions such as creating the first administrator user. For the mailer you can use a SMTP server, Mailgun, or Amazon SES (Simple Email Service).
-
-To specify the email address from which messages will be sent, add the following configuration to your `vars.yml` file:
+It is possible to specify which user IDs will be system admins by adding the following configuration to your `vars.yml` file (adapt to your needs):
 
 ```yaml
-plausible_environment_variables_email_noreply: YOUR_EMAIL_ADDRESS_HERE
+plausible_environment_variable_admin_user_ids: '1,2,3'
 ```
 
-To configure a SMTP server, add the following configuration to your `vars.yml` file as below (adapt to your needs):
+By default, only the first user (`1`) to be registered will be made an administrator.
+
+### Configuring the mailer (optional)
+
+You can configure a mailer for activating accounts, resetting password, and sending reports. For the mailer you can use a SMTP server or services like Mailgun and Postmark.
+
+To configure the SMTP mailer, add the following configuration to your `vars.yml` file as below (adapt to your needs):
 
 ```yaml
-# Control if SMTP server is enabled as the email sender
-plausible_mailer_smtp_enabled: true
+plausible_environment_variable_mailer_adapter: Bamboo.SMTPAdapter
 
 # Specify SMTP server hostname
-plausible_environment_variables_email_smtp_host: ""
+plausible_environment_variable_smtp_host_addr: ""
 
 # Specify SMTP server port
-plausible_environment_variables_email_smtp_port: 587
+plausible_environment_variable_smtp_host_port: 587
 
 # Specify SMTP server username
-plausible_environment_variables_email_smtp_username: ""
+plausible_environment_variable_smtp_user_name: ""
 
 # Specify SMTP server password
-plausible_environment_variables_email_smtp_password: ""
+plausible_environment_variable_smtp_user_pwd: ""
 
-# Set `true` to enable STARTTLS
-plausible_environment_variables_email_smtp_enable_starttls: ""
+# Specify the email address that emails will be sent from
+plausible_environment_variable_mailer_email: ""
+
+# Set to `true` to enable SMTPS
+plausible_environment_variable_smtp_host_ssl_enabled: ""
 ```
 
-Refer to [this section](https://docs.plausible.io/hosting-instance/#installing-and-running) on the official documentation for details about how to configure the mailer for Railgun or Amazon SES.
+>[!NOTE]
+> As of 2024-06-28, only `Bamboo.SMTPAdapter` behaves well when no SMTP username/password AUTH is required (as is the case for exim-relay). The Bamboo.Mua SMTP adapter is more modern, but always sends authentication, even when the SMTP user is empty.
+
+Refer to [this section](https://github.com/plausible/community-edition/wiki/configuration#email) on the official documentation for details about how to configure the mailer.
 
 >[!WARNING]
 > Without setting an authentication method such as DKIM, SPF, and DMARC for your hostname, emails are most likely to be quarantined as spam at recipient's mail servers. The worst scenario is that your server's IP address or hostname will be included in the spam list such as the one managed by [Spamhaus](https://www.spamhaus.org/). If you have set up a mail server with the [MASH project's exim-relay Ansible role](https://github.com/mother-of-all-self-hosting/ansible-role-exim-relay), you can enable DKIM signing with it. Refer [its documentation](https://github.com/mother-of-all-self-hosting/ansible-role-exim-relay/blob/main/docs/configuring-exim-relay.md#enable-dkim-support-optional) for details.
-
-### Integrating with Prometheus (optional)
-
-Plausible Analytics can natively expose metrics to Prometheus.
-
-If you are looking for an integration, you can check out the MASH playbook. Refer to [this section of the documentation on the playbook](https://github.com/mother-of-all-self-hosting/mash-playbook/blob/main/docs/services/plausible.md#integrating-with-prometheus-optional) for more information.
 
 ### Extending the configuration
 
@@ -139,7 +158,7 @@ Take a look at:
 
 - [`defaults/main.yml`](../defaults/main.yml) for some variables that you can customize via your `vars.yml` file. You can override settings (even those that don't have dedicated playbook variables) using the `plausible_environment_variables_additional_variables` variable
 
-Refer to [this page](https://docs.plausible.io/hosting-instance/) on the official documentation for a complete list of Plausible Analytics's config options that you can put in `plausible_environment_variables_additional_variables`.
+Refer to [this page](https://github.com/plausible/community-edition/wiki/configuration) on the official documentation for a complete list of Plausible Analytics's config options that you can put in `plausible_environment_variables_additional_variables`.
 
 ## Installing
 
@@ -155,7 +174,9 @@ If you use the MASH playbook, the shortcut commands with the [`just` program](ht
 
 After running the command for installation, Plausible Analytics becomes available at the specified hostname like `https://example.com`.
 
-To get started, open the URL with a web browser, and register the account. **Note that the first registered user becomes an administrator automatically.**
+To get started, open the URL with a web browser, and register the administrator account (see the details about `plausible_environment_variable_admin_user_ids` above).
+
+After logging in with your user account you can create properties (websites) and invite other users by email. By default, the service is configured to allow registrations that are coming from an explicit invitation, while public registrations are disabled. This can be controlled with the `plausible_environment_variable_disable_registration` variable.
 
 ## Troubleshooting
 
