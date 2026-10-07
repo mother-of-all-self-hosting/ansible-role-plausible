@@ -232,10 +232,10 @@ plausible_container_cleanup_command: |
   echo "Failed to remove stale container {{ plausible_identifier }} after {{ plausible_container_cleanup_timeout_seconds }} attempts" >&2;
   exit 1
 
-plausible_database_username: plausible
-plausible_database_password: ""
 plausible_database_hostname: ""
 plausible_database_port: 5432
+plausible_database_username: plausible
+plausible_database_password: ""
 # Specify SSL mode for Postgres database server
 # By default, we expect a local container (without SSL), so attempting SSL connections is not necessary.
 # Valid values: see https://www.postgresql.org/docs/11/libpq-ssl.html#LIBPQ-SSL-SSLMODE-STATEMENTS
@@ -246,10 +246,10 @@ plausible_database_name: plausible
 # Plausible also requires the following grants:
 # 1. `GRANT SELECT ON system.replicas TO plausible;`
 # 2. `GRANT SELECT ON system.parts TO plausible;`
-plausible_clickhouse_database_username: plausible
-plausible_clickhouse_database_password: ""
 plausible_clickhouse_database_hostname: ""
 plausible_clickhouse_database_port: 8123
+plausible_clickhouse_database_username: plausible
+plausible_clickhouse_database_password: ""
 plausible_clickhouse_database_name: plausible
 
 # Specify the timezone
