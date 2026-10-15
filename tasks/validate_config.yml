@@ -44,7 +44,7 @@
   ansible.builtin.fail:
     msg: >-
       You need to define a required configuration setting (`{{ item }}`) to correctly set up email via SMTP.
-  when: "plausible_environment_variable_smtp_host_addr !='' and lookup('vars', item, default='') | string | length == 0"
+  when: "plausible_environment_variable_smtp_host_addr != '' and lookup('vars', item, default='') | string | length == 0"
   with_items:
     - plausible_environment_variable_mailer_email
 
