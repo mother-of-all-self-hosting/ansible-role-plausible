@@ -81,8 +81,8 @@ provisioner:
         # Variables required for Plausible Analytics to connect to the Postgres database
         plausible_database_hostname: "{{ postgres_connection_hostname }}"
         plausible_database_port: "{{ postgres_connection_port }}"
-        plausible_database_username: my_database_username
-        plausible_database_password: my_database_password
+        plausible_database_username: /#@my_database_username?%
+        plausible_database_password: /#@my_database_password?%
         plausible_database_name: plausible
         plausible_systemd_required_services_list_auto: |
           {{
