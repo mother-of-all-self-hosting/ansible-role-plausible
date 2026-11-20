@@ -28,12 +28,8 @@
       You need to define a required configuration setting (`{{ item }}`).
   when: "lookup('vars', item, default='') | string | length == 0"
   with_items:
-    - plausible_identifier
     - plausible_uid
     - plausible_gid
-    - plausible_hostname
-    - plausible_path_prefix
-    - plausible_container_network
     - plausible_database_hostname
     - plausible_database_password
     - plausible_clickhouse_database_hostname
